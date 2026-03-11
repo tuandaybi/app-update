@@ -1,14 +1,3 @@
-Run from the app folder:
-```
-python updater.py ^
-  --server-url "https://update.0977769666.click/api/app-updates" ^
-  --app-slug tiktok-bot ^
-  --channel main ^
-  --current-version 1.0.0 ^
-  --launch-name app
-```
-(Use `\` line breaks on Linux/macOS.)
-
 CLI flags
 - `--server-url` (required) : Base API path.
 - `--app-slug` (required)  : Application slug.
