@@ -9,6 +9,8 @@ CLI flags
 - `--timeout`              : Network timeout seconds (default 60).
 - `--result-file`          : JSON log path (default `update-result.json`) for caller app to read then delete.
 - `--stop-process`         : Extra process names to stop before copying files; repeat the flag for multiple helpers.
+- `--preserve-json`        : Keep old json
+
 
 Behavior
 - Fetches `<server>/<app_slug>/<channel>/latest`.
@@ -19,3 +21,4 @@ Behavior
 - Writes result JSON with status/message/versions to `--result-file` for host app; host should read and remove it.
 
 python -m PyInstaller --onefile --name app-updater updater.py
+git

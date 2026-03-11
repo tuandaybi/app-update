@@ -89,7 +89,7 @@ def stop_processes(names: list[str]) -> None:
                 )
 
 
-def copy_tree(src: str, dst: str, preserve_json: bool = False) -> None:
+def copy_tree(src: str, dst: str) -> None:
     for root, dirs, files in os.walk(src):
         rel = os.path.relpath(root, src)
         target_root = os.path.join(dst, rel) if rel != "." else dst
@@ -99,8 +99,8 @@ def copy_tree(src: str, dst: str, preserve_json: bool = False) -> None:
         for f in files:
             src_file = os.path.join(root, f)
             dst_file = os.path.join(target_root, f)
-            if preserve_json and f.lower().endswith(".json") and os.path.exists(dst_file):
-                # Keep local JSON configs/logs intact when requested.
+            if f.lower().endswith(".json") and os.path.exists(dst_file):
+                # Keep local JSON configs/logs intact by default; delete if you want fresh ones.
                 continue
             try:
                 # Avoid overwriting the running updater executable itself.
@@ -143,11 +143,6 @@ def main() -> int:
     parser.add_argument("--launch-name", help="Executable name without .exe; defaults to channel.")
     parser.add_argument("--force", action="store_true", help="Force update regardless of version/has_update.")
     parser.add_argument("--skip-start", action="store_true", help="Skip launching after update.")
-    parser.add_argument(
-        "--preserve-json",
-        action="store_true",
-        help="Do not overwrite existing .json files in target directory during copy.",
-    )
     parser.add_argument("--timeout", type=int, default=60, help="Network timeout seconds.")
     parser.add_argument("--result-file", default="update-result.json", help="Path to write JSON result log.")
     parser.add_argument(
@@ -261,7 +256,7 @@ def main() -> int:
             zf.extractall(tmp)
 
         log("Copying updated files into current directory")
-        copy_tree(tmp, os.getcwd(), preserve_json=bool(args.preserve_json))
+        copy_tree(tmp, os.getcwd())
 
     os.remove(zip_path)
 
