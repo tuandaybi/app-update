@@ -15,6 +15,7 @@ import hashlib
 import json
 import os
 import shutil
+import time
 import subprocess
 import sys
 import tempfile
@@ -96,7 +97,31 @@ def copy_tree(src: str, dst: str) -> None:
         for d in dirs:
             os.makedirs(os.path.join(target_root, d), exist_ok=True)
         for f in files:
-            shutil.copy2(os.path.join(root, f), os.path.join(target_root, f))
+            src_file = os.path.join(root, f)
+            dst_file = os.path.join(target_root, f)
+            attempts = 0
+            last_err = None
+            while attempts < 5:
+                try:
+                    # Remove first to avoid "being used by another process" on Windows
+                    if os.path.exists(dst_file):
+                        try:
+                            os.remove(dst_file)
+                        except Exception:
+                            pass
+                    shutil.copy2(src_file, dst_file)
+                    last_err = None
+                    break
+                except PermissionError as e:
+                    last_err = e
+                    attempts += 1
+                    time.sleep(0.25 * attempts)
+                except Exception as e:
+                    last_err = e
+                    attempts += 1
+                    time.sleep(0.1 * attempts)
+            if last_err:
+                raise last_err
 
 
 def main() -> int:
@@ -110,6 +135,12 @@ def main() -> int:
     parser.add_argument("--skip-start", action="store_true", help="Skip launching after update.")
     parser.add_argument("--timeout", type=int, default=60, help="Network timeout seconds.")
     parser.add_argument("--result-file", default="update-result.json", help="Path to write JSON result log.")
+    parser.add_argument(
+        "--stop-process",
+        action="append",
+        default=[],
+        help="Additional process names to stop before updating; can be passed multiple times.",
+    )
     args = parser.parse_args()
 
     def write_result(status: str, message: str, extra: dict | None = None) -> None:
@@ -206,7 +237,8 @@ def main() -> int:
         if actual_hash.lower() != expected_hash.lower():
             exit_with("failed", "SHA256 hash mismatch.", 1, {"server_version": new_version, "mandatory": mandatory})
 
-    stop_processes([launch_name, args.app_slug])
+    # Stop main app + any helper processes requested by caller.
+    stop_processes([launch_name, args.app_slug, *args.stop_process])
 
     with tempfile.TemporaryDirectory(prefix="app-update-") as tmp:
         log(f"Extracting to {tmp}")
